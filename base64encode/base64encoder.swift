@@ -12,22 +12,13 @@ let bitsPerByte = 8
 func base64Encode (data: NSData?) -> String?
 {
     if let optionalData = data {
-        let byteCount = optionalData.length / sizeof(UInt8)
+        let byteCount = optionalData.length
         var byteArray = [UInt8](count: byteCount, repeatedValue: 0)
-        optionalData.getBytes(&byteArray, length: byteCount * sizeof(UInt8))
-        if var arrayOfByteStrings = bytesToArrayOfByteStrings(byteArray) {
-            while (arrayOfByteStrings.count % bytesPer24Bits > 0) {
-                arrayOfByteStrings.append(integerToByteString(0)!)
+        optionalData.getBytes(&byteArray, length: byteCount)
+        if let arrayOfByteStrings = bytesToArrayOfByteStrings(byteArray) {
+            if let arrayOfByteStringsDivisibleByThree = fillByteArrayWithZeroedBytesUntilDivisibleByThree(arrayOfByteStrings) {
+                return base64EncodeArrayOfByteStrings(arrayOfByteStringsDivisibleByThree)
             }
-            
-            var base64String = String()
-            var segmentPointer = 0
-            while segmentPointer < arrayOfByteStrings.count - bytesPer24Bits {
-                let arrayOfThreeBytesToBeEncoded = [arrayOfByteStrings[segmentPointer], arrayOfByteStrings[segmentPointer + 1], arrayOfByteStrings[segmentPointer + 2]]
-                base64String += processThreeByteBinaryArrayIntoBase64String(arrayOfThreeBytesToBeEncoded)!
-                segmentPointer += bytesPer24Bits
-            }
-            return base64String
         }
     }
     return nil
@@ -43,6 +34,18 @@ func bytesToArrayOfByteStrings(byteArray: [UInt8]?) -> [String]?
             }
         }
         return byteStringArray
+    }
+    return nil
+}
+
+func fillByteArrayWithZeroedBytesUntilDivisibleByThree(byteArray:[String]?) -> [String]?
+{
+    if let optionalByteArray = byteArray {
+        var arrayOfByteStrings = optionalByteArray
+        while (arrayOfByteStrings.count % bytesPer24Bits > 0) {
+            arrayOfByteStrings.append(integerToByteString(0)!)
+        }
+        return arrayOfByteStrings
     }
     return nil
 }
@@ -91,6 +94,21 @@ func concatenateThreeBytesStringArray(threeByteStringArray: [String]?) -> String
         }
         
         return threeByteBinaryString
+    }
+    return nil
+}
+
+func base64EncodeArrayOfByteStrings(byteStringArray: [String]?) -> String?
+{
+    if let optionalByteStringArray = byteStringArray {
+        var base64String = String()
+        var segmentPointer = 0
+        while segmentPointer < optionalByteStringArray.count - bytesPer24Bits {
+            let arrayOfThreeBytesToBeEncoded = [optionalByteStringArray[segmentPointer], optionalByteStringArray[segmentPointer + 1], optionalByteStringArray[segmentPointer + 2]]
+            base64String += processThreeByteBinaryArrayIntoBase64String(arrayOfThreeBytesToBeEncoded)!
+            segmentPointer += bytesPer24Bits
+        }
+        return base64String
     }
     return nil
 }
