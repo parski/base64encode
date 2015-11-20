@@ -5,9 +5,10 @@ I wanted to learn Swift. I also wanted to learn how base64 encoding works. Now I
 
 I know that there are base64 functions in Foundation and even a base64 utility in OS X but I wanted to implement the juicy part of radix 64 encoding myself. These kinds of concepts are easier for me to understand if I implement them from scratch.
 
-I also want to take this opportunity to yet again denounce GNU, GPL and the FSF. They are a culture of brainwashing parasites on the permissive pillar of open source software that is fundamental to the further development of the information age. Do not let their follies of supposed freedom lure you into their restrictive domains.
+I\ve re-implemented the logic to use lower level operations. I wanted to see how bit manipulation worked in Swift and I found out it works just as you'd expect if you've ever done bitwise logic in any C-like language. Here are benchmarks from testing on a larger (?) image:
+```
+String version took 11.3489139676094
+Binary version took 1.38903999328613
+```
 
-Truly free and permissive,  
-parski
-
-This software is distributed under the BSD 2-clause license.
+Needless to say the binary version is ~10x faster. Check early commits for sluggish string version if you dare.
