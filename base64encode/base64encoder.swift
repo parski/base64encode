@@ -5,126 +5,72 @@
 
 import Foundation
 
-let bytesPer24Bits = 3
-let byteMaxValue = 255
-let bitsPerByte = 8
-
 func base64Encode (data: NSData?) -> String?
 {
     if let optionalData = data {
-        let byteCount = optionalData.length
-        var byteArray = [UInt8](count: byteCount, repeatedValue: 0)
-        optionalData.getBytes(&byteArray, length: byteCount)
-        if let arrayOfByteStrings = bytesToArrayOfByteStrings(byteArray) {
-            if let arrayOfByteStringsDivisibleByThree = fillByteArrayWithZeroedBytesUntilDivisibleByThree(arrayOfByteStrings) {
-                return base64EncodeArrayOfByteStrings(arrayOfByteStringsDivisibleByThree)
-            }
-        }
+        var bytes = [UInt8](count: optionalData.length, repeatedValue: 0)
+        optionalData.getBytes(&bytes, length: optionalData.length)
+        return base64StringForBytes(bytes)!
     }
     return nil
 }
 
-func bytesToArrayOfByteStrings(byteArray: [UInt8]?) -> [String]?
+func base64StringForBytes(bytes: [UInt8]?) -> String?
 {
-    if let optionalByteArray = byteArray {
-        var byteStringArray = [String]()
-        for byte in optionalByteArray {
-            if let byteString = integerToByteString(Int(byte)) {
-                byteStringArray.append(byteString)
-            }
+    if let optionalBytes = bytes {
+        var bytesDivisibleByThree = optionalBytes
+        while bytesDivisibleByThree.count % 3 != 0 {
+            bytesDivisibleByThree.append(UInt8(0))
         }
-        return byteStringArray
-    }
-    return nil
-}
-
-func fillByteArrayWithZeroedBytesUntilDivisibleByThree(byteArray:[String]?) -> [String]?
-{
-    if let optionalByteArray = byteArray {
-        var arrayOfByteStrings = optionalByteArray
-        while (arrayOfByteStrings.count % bytesPer24Bits > 0) {
-            arrayOfByteStrings.append(integerToByteString(0)!)
-        }
-        return arrayOfByteStrings
-    }
-    return nil
-}
-
-func integerToByteString(integer: Int?) -> String?
-{
-    if let optionalInteger = integer {
-        if optionalInteger > byteMaxValue {
-            return nil
-        }
-        
-        var prefixedByte: String = String(optionalInteger, radix: 2)
-        while (prefixedByte.characters.count < bitsPerByte) {
-            prefixedByte = "0" + prefixedByte
-        }
-        return prefixedByte
-    }
-    return nil
-}
-
-func processThreeByteBinaryArrayIntoBase64String(binaryStringArray: [String]?) -> String?
-{
-    if let optionalBinaryStringArray = binaryStringArray {
-        let concatenatedBytesString = concatenateThreeBytesStringArray(optionalBinaryStringArray)
-        if let optionalConcatenatedBytesString: String = concatenatedBytesString {
-            return base64EncodeThreeByteString(optionalConcatenatedBytesString)
-        }
-    }
-    return nil
-}
-
-func concatenateThreeBytesStringArray(threeByteStringArray: [String]?) -> String?
-{
-    if let optionalThreeByteStringArray = threeByteStringArray {
-        if optionalThreeByteStringArray.count != bytesPer24Bits {
-            return nil
-        }
-        
-        var threeByteBinaryString: String = String()
-        for byte in optionalThreeByteStringArray {
-            threeByteBinaryString += byte
-        }
-        
-        if (threeByteBinaryString.characters.count != bitsPerByte * bytesPer24Bits) {
-            return nil
-        }
-        
-        return threeByteBinaryString
-    }
-    return nil
-}
-
-func base64EncodeArrayOfByteStrings(byteStringArray: [String]?) -> String?
-{
-    if let optionalByteStringArray = byteStringArray {
         var base64String = String()
-        var segmentPointer = 0
-        while segmentPointer < optionalByteStringArray.count - bytesPer24Bits {
-            let arrayOfThreeBytesToBeEncoded = [optionalByteStringArray[segmentPointer], optionalByteStringArray[segmentPointer + 1], optionalByteStringArray[segmentPointer + 2]]
-            base64String += processThreeByteBinaryArrayIntoBase64String(arrayOfThreeBytesToBeEncoded)!
-            segmentPointer += bytesPer24Bits
+        var byte = 0
+        while byte < bytesDivisibleByThree.count - 3 {
+            let arrayOfThreeBytesToBeEncoded = [bytesDivisibleByThree[byte], bytesDivisibleByThree[byte + 1], bytesDivisibleByThree[byte + 2]]
+            let chunk = make24BitChunkFromThreeBytes(arrayOfThreeBytesToBeEncoded)
+            let sixBitChunks = splitUp32BitChunkToFourSixBitChunks(chunk)
+            base64String += base64CharactersForSixBitChunks(sixBitChunks)!
+            byte += 3
         }
         return base64String
     }
     return nil
 }
 
-func base64EncodeThreeByteString(threeByteString: String?) -> String?
+func make24BitChunkFromThreeBytes(threeBytes: [UInt8]?) -> UInt32?
 {
-    if let optionalThreeByteString = threeByteString {
-        var base64RepresentationOfThreeBytes = String()
-        for index in 0..<4 {
-            let startIndex = optionalThreeByteString.startIndex.advancedBy(6 * index)
-            let endIndex = optionalThreeByteString.startIndex.advancedBy((6 * index) + 6)
-            let sixBitSegment = optionalThreeByteString.substringWithRange(Range<String.Index>(start: startIndex, end: endIndex))
-            let sixBitSegmentDecimalValue = Int(strtoul(sixBitSegment, nil, 2))
-            base64RepresentationOfThreeBytes += base64Characters[sixBitSegmentDecimalValue]!
+    if let optionalThreeBytes = threeBytes {
+        var twentyFourBitChunk: UInt32 = 0
+        
+        for byte in optionalThreeBytes {
+            twentyFourBitChunk = (twentyFourBitChunk | UInt32(byte)) << 8
         }
-        return base64RepresentationOfThreeBytes
+        return twentyFourBitChunk >> 8
+    }
+    return nil
+}
+
+func splitUp32BitChunkToFourSixBitChunks(chunk32Bit: UInt32?) -> [UInt8]?
+{
+    if let optionalChunk32Bit: UInt32 = chunk32Bit {
+        let firstChunk: UInt8 = UInt8((optionalChunk32Bit & 0x00FC0000) >> 18)
+        let secondChunk: UInt8 = UInt8((optionalChunk32Bit & 0x0003F000) >> 12)
+        let thirdChunk: UInt8 = UInt8((optionalChunk32Bit & 0x00000FC0) >> 6)
+        let fourthChunk: UInt8 = UInt8(optionalChunk32Bit & 0x0000003F)
+        return [firstChunk, secondChunk, thirdChunk, fourthChunk]
+    }
+    return nil
+}
+
+func base64CharactersForSixBitChunks(sixBitChunks: [UInt8]?) -> String?
+{
+    if let optionalSixBitChunks = sixBitChunks {
+        var base64CharacterString = String()
+        for chunk in optionalSixBitChunks {
+            if let character = base64Characters[Int(chunk)] {
+                base64CharacterString += character
+            }
+        }
+        return base64CharacterString
     }
     return nil
 }
