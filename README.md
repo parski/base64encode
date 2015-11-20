@@ -5,7 +5,7 @@ I wanted to learn Swift. I also wanted to learn how base64 encoding works. Now I
 
 I know that there are base64 functions in Foundation and even a base64 utility in OS X but I wanted to implement the juicy part of radix 64 encoding myself. These kinds of concepts are easier for me to understand if I implement them from scratch.
 
-I\ve re-implemented the logic to use lower level operations. I wanted to see how bit manipulation worked in Swift and I found out it works just as you'd expect if you've ever done bitwise logic in any C-like language. Here are benchmarks from testing on a larger (?) image:
+I've re-implemented the logic to use lower level operations. I wanted to see how bit manipulation worked in Swift and I found out it works just as you'd expect if you've ever done bitwise logic in any C-like language. Here are benchmarks (in seconds) from testing on a larger (?) image:
 ```
 String version took 11.3489139676094
 Binary version took 1.38903999328613
